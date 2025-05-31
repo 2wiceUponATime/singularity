@@ -210,19 +210,36 @@ the result of another, put them in separate messages. Available tools:\n' + getX
                         try {
                             newResponse.push(await getTool(match));
                         } catch (error) {
-                            console.log("Error parsing tool call. Attempting to fix:", error);
-                            const response = await this._getResponse(this.model, this.messages.concat({
-                                type: "text",
-                                role: "system",
-                                content: `Error parsing tool call ${match}: ${error}. Respond \
-with only the corrected XML. Example: <tool name="get_weather">{ "city": "New York" }</tool>`
-                            }), tools);
-                            const message = response[0];
-                            if (message.type != "text") {
-                                throw new Error("Invalid response from LLM");
-                            }
-                            console.log("Fixed tool call:", message.content);
-                            newResponse.push(await getTool(message.content));
+                            let toolCall = match;
+                            let toolFixMessages: Message[] = [];
+                            while (true) {
+                                try {
+                                    console.log("Error parsing tool call. Attempting to fix:", error);
+                                    toolFixMessages.push({
+                                        type: "text",
+                                        role: "system",
+                                        content: `Error parsing tool call ${toolCall}: ${error}. Respond \
+with only the corrected XML or 'cancel' to cancel the request. Example: <tool name="get_weather">\
+{ "city": "New York" }</tool>`
+                                    })
+                                    const response = await this._getResponse(this.model, this.messages.concat(toolFixMessages), tools);
+                                    toolFixMessages.push(...response);
+                                    const message = response[0];
+                                    if (message.type != "text") {
+                                        throw new Error("Invalid response from LLM");
+                                    }
+                                    toolCall = message.content;
+                                    console.log("Fixed tool call:", toolCall);
+                                    if (toolCall.toLowerCase().startsWith("cancel") || !toolCall.trim()) {
+                                        console.log("Tool call correction canceled")
+                                        break;
+                                    }
+                                    newResponse.push(await getTool(message.content));
+                                    break;
+                                } catch(newError) {
+                                    error = newError;                                    error = newError;
+                                }
+                        }
                         }
                     }
                 }
