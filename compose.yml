@@ -1,0 +1,27 @@
+services:
+  app:
+    env_file: .env
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - GIT_USERNAME=${GIT_USERNAME}
+        - GIT_EMAIL=${GIT_EMAIL}
+        # - OLLAMA_MODEL=${OLLAMA_MODEL}
+    depends_on:
+      - ollama
+    volumes:
+      - ./out:/app
+    networks:
+      - ollama-network
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ./.ollama:/root/.ollama
+    networks:
+      - ollama-network
+networks:
+  ollama-network:
+    driver: bridge
