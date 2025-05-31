@@ -244,10 +244,6 @@ with only the corrected XML. Example: <tool name="get_weather">{ "city": "New Yo
                         };
                         continue;
                     case "tool_call":
-                        const tool = this.tools[message.name];
-                        if (!tool) {
-                            throw new Error(`Tool ${message.name} not found`);
-                        }
                         const toolMessage = await getToolResult(message);
                         result.push(toolMessage);
                         this.messages.push(toolMessage);
